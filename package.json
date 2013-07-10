@@ -1,0 +1,12 @@
+{
+  "name": "superagent-hawk",
+  "version": "0.0.0",
+  "description": "superagent with hawk",
+  "main": "index.js",
+  "license": "BSD",
+  "readmeFilename": "Readme.md",
+  "dependencies": {
+    "superagent": "~0.15.4",
+    "hawk": "~1.0.0"
+  }
+}
