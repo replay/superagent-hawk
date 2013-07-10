@@ -1,10 +1,14 @@
 {
   "name": "superagent-hawk",
-  "version": "0.0.0",
-  "description": "superagent with hawk",
+  "version": "0.0.1",
+  "description": "adds hawk to superagent",
   "main": "index.js",
   "scripts": {
     "test": "tap ./tests/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/CrowdProcess/superagent-hawk.git"
   },
   "license": "BSD",
   "readmeFilename": "Readme.md",
