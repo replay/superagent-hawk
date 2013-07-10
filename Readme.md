@@ -26,11 +26,15 @@ var credential = {
   "id": "50e17602-f044-41cb-8e5f-ae634cc15fb0",
   "key": "I2Yiq3UGAUR6Oztnv/3JJK6T0clmGTX14d/TJ1qNKio=",
   "algorithm": "sha256"
-}
+};
+
+var options = { // look at https://github.com/hueniverse/hawk/blob/master/lib/browser.js#L26
+  localtimeOffsetMsec: 500
+};
 
 request
   .get('http://resource.com')
-  .hawk(credential)
+  .hawk(credential, options) // options is, well, optional
   .end(function (res) {
     console.log(res.body);
   });
