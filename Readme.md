@@ -10,7 +10,7 @@
 
     $ component install CrowdProcess/superagent-hawk
 
-  And with [component](http://npmjs.org):
+  And with [npm](http://npmjs.org):
 
     $ npm install superagent-hawk
 
