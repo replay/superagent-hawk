@@ -1,14 +1,15 @@
 {
   "name": "superagent-hawk",
   "repo": "CrowdProcess/superagent-hawk",
-  "description": "superagent with hawk",
+  "description": "adds hawk to superagent",
   "version": "0.0.1",
   "keywords": [],
   "dependencies": {
-    "visionmedia/superagent": "*",
     "joaojeronimo/hawk": "*"
   },
-  "development": {},
+  "development": {
+    "visionmedia/superagent": "*"
+  },
   "license": "MIT",
   "main": "index.js",
   "scripts": [

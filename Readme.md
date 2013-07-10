@@ -1,8 +1,22 @@
 # superagent-hawk
 
+Extends
 [superagent](http://visionmedia.github.io/superagent)
 with
-[hawk](https://github.com/hueniverse/hawk)
+[hawk](https://github.com/hueniverse/hawk):
+
+```js
+var superagent = require('superagent');
+var addHawk = require('superagent-hawk');
+var request = addHawk(superagent);
+
+request
+  .get('http://things.com')
+  .hawk(credential)
+  .end(function (res) {
+    console.log('yay:', res.body);
+  });
+```
 
 ## Installation
 
@@ -20,7 +34,9 @@ The normal [superagent](http://visionmedia.github.io/superagent) things,
 plus `hawk`:
 
 ```js
-var request = require('superagent-hawk');
+var superagent = require('superagent');
+var addHawk = require('superagent-hawk');
+var request = addHawk(superagent);
 
 var credential = {
   "id": "50e17602-f044-41cb-8e5f-ae634cc15fb0",
@@ -43,7 +59,9 @@ request
 and `bewit`:
 
 ```js
-var request = require('superagent-hawk');
+var superagent = require('superagent');
+var addHawk = require('superagent-hawk');
+var request = addHawk(superagent);
 
 var bewit = "ZDA1Mzg4Y2UtMGRmYi00NWFlLThlODMtY2Q2MmJlZGE0MDNlXDEzNzM0Njc3NDNcNnJyUjA3QWdOQkVWVHlENCsxOFZTZ2M1OERqWmxrc3VzVHZoOUpLM0JzQT1c";
 
