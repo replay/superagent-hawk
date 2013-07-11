@@ -7,9 +7,16 @@ module.exports = function addHawk (superagent) {
     var url = this.url;
     var method = this.method;
 
+    var contentType;
+
+    if (this.getHeader && this.getHeader instanceof Function)
+      contentType = this.getHeader('content-type');
+    else if (this.get && this.get instanceof Function)
+      contentType = this.get('content-type');
+
     var options = {
       credentials: credentials,
-      contentType: this.header['Content-Type'],
+      contentType: contentType,
       payload: this._data
     };
 
