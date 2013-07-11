@@ -3,21 +3,26 @@ var extend = require('./lib/extend');
 
 exports =
 module.exports = function addHawk (superagent) {
-  superagent.Request.prototype.hawk = function(credentials, moreOptions) {
+  superagent.Request.prototype.hawk = function(credential, moreOptions) {
     var url = this.url;
     var method = this.method;
 
     var contentType;
-
     if (this.getHeader && this.getHeader instanceof Function)
       contentType = this.getHeader('content-type');
     else if (this.get && this.get instanceof Function)
       contentType = this.get('content-type');
 
+    var isJSON = this._data &&
+                 this._data instanceof Object &&
+                 contentType === 'application/json';
+
+    var data = (isJSON) ? JSON.stringify(this._data) : this._data;
+
     var options = {
-      credentials: credentials,
+      credentials: credential,
       contentType: contentType,
-      payload: this._data
+      payload: data
     };
 
     if (options && typeof options == 'object')
