@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "superagent": "~0.15.4",
-    "tap": "~0.4.3"
+    "tap": "~0.4.3",
+    "supertest": "~0.7.1"
   }
 }

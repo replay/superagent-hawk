@@ -1,9 +1,11 @@
 var createServer = require('http').createServer;
 var addHawk = require('../');
 var superagent = require('superagent');
+var supertest = addHawk(require('supertest'));
 var request = addHawk(superagent);
 var hawk = require('hawk');
 var test = require('tap').test;
+var extend = require('../lib/extend');
 
 var credential = require('./fixtures/credential.json');
 
@@ -40,12 +42,23 @@ test('credential works', function (t) {
     });
 });
 
-test('wrong id is not found', function (t) {
-  credential.id = 'notInTheDB';
+test('supertest credential works', function (t) {
+  supertest(server)
+    .get('/')
+    .hawk(credential)
+    .expect(200)
+    .expect('Content-Type', /plain/)
+    .end(function (err, res) {
+      t.notOk(err, 'error is empty: ' + err);
+      t.ok(res, 'response received');
+      t.end();
+    });
+});
 
+test('wrong id is not found', function (t) {
   request
     .get('http://localhost:8080')
-    .hawk(credential)
+    .hawk(extend({}, credential, { id: 'notInTheDB' }))
     .end(function (res) {
       t.equal(401, res.statusCode, 'Responded 401');
       t.equal(res.text, 'Shoosh!', 'Not authenticated');
@@ -53,15 +66,37 @@ test('wrong id is not found', function (t) {
     });
 });
 
-test('wrong key won\'t work', function (t) {
-  credential.key = 'wrong key';
+test('supertest wrong id not found', function (t) {
+  supertest(server)
+    .get('/')
+    .hawk(extend({}, credential, { id: 'notInTheDB' }))
+    .expect(401)
+    .expect('Content-Type', /plain/)
+    .end(function (err, res) {
+      t.notOk(err, 'error is empty: ' + err);
+      t.end();
+    });
+});
 
+test('wrong key won\'t work', function (t) {
   request
     .get('http://localhost:8080')
-    .hawk(credential)
+    .hawk(extend({}, credential, { key: 'invalid key' }))
     .end(function (res) {
       t.equal(res.statusCode, 401, 'Responded 401');
       t.equal(res.text, 'Shoosh!', 'Not authenticated');
+      t.end();
+    });
+});
+
+test('supertest wrong key won\'t work', function (t) {
+  supertest(server)
+    .get('/')
+    .hawk(extend({}, credential, { key: 'invalid key' }))
+    .expect(401)
+    .expect('Content-Type', /plain/)
+    .end(function (err, res) {
+      t.notOk(err, 'error is empty: ' + err);
       t.end();
     });
 });
