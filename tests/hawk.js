@@ -1,8 +1,6 @@
 var createServer = require('http').createServer;
 var addHawk = require('../');
-var superagent = require('superagent');
 var supertest = addHawk(require('supertest'));
-var request = addHawk(superagent);
 var hawk = require('hawk');
 var test = require('tap').test;
 var extend = require('../lib/extend');
@@ -25,24 +23,7 @@ var server = createServer(function (req, res) {
   });
 });
 
-test('server starts', function (t) {
-  server.listen(8080, function () {
-    t.end();
-  });
-});
-
 test('credential works', function (t) {
-  request
-    .get('http://localhost:8080')
-    .hawk(credential)
-    .end(function (res) {
-      t.equal(res.statusCode, 200, 'Responded 200');
-      t.equal(res.text, 'Hello Steve', 'knows who I am');
-      t.end();
-    });
-});
-
-test('supertest credential works', function (t) {
   supertest(server)
     .get('/')
     .hawk(credential)
@@ -55,18 +36,7 @@ test('supertest credential works', function (t) {
     });
 });
 
-test('wrong id is not found', function (t) {
-  request
-    .get('http://localhost:8080')
-    .hawk(extend({}, credential, { id: 'notInTheDB' }))
-    .end(function (res) {
-      t.equal(401, res.statusCode, 'Responded 401');
-      t.equal(res.text, 'Shoosh!', 'Not authenticated');
-      t.end();
-    });
-});
-
-test('supertest wrong id not found', function (t) {
+test('wrong id not found', function (t) {
   supertest(server)
     .get('/')
     .hawk(extend({}, credential, { id: 'notInTheDB' }))
@@ -74,17 +44,6 @@ test('supertest wrong id not found', function (t) {
     .expect('Content-Type', /plain/)
     .end(function (err, res) {
       t.notOk(err, 'error is empty: ' + err);
-      t.end();
-    });
-});
-
-test('wrong key won\'t work', function (t) {
-  request
-    .get('http://localhost:8080')
-    .hawk(extend({}, credential, { key: 'invalid key' }))
-    .end(function (res) {
-      t.equal(res.statusCode, 401, 'Responded 401');
-      t.equal(res.text, 'Shoosh!', 'Not authenticated');
       t.end();
     });
 });
@@ -101,7 +60,7 @@ test('supertest wrong key won\'t work', function (t) {
     });
 });
 
-test('server ends', function (t) {
-  server.close();
+test('unref let\'s the this exit', function (t) {
+  server.unref();
   t.end();
 });
