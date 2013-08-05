@@ -6,7 +6,6 @@
   "keywords": [],
   "dependencies": {
     "joaojeronimo/hawk": "*",
-    "test": "*",
     "supertest": "*"
   },
   "development": {
