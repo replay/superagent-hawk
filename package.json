@@ -13,7 +13,8 @@
   "license": "BSD",
   "readmeFilename": "Readme.md",
   "dependencies": {
-    "hawk": "~1.0.0"
+    "hawk": "~1.0.0",
+    "qs": "^0.6.6"
   },
   "devDependencies": {
     "superagent": "~0.15.4",

@@ -1,5 +1,6 @@
 var hawk = require('hawk');
 var extend = require('./lib/extend');
+var qs = require('qs');
 
 exports =
 module.exports = function addHawk (superagent) {
@@ -10,6 +11,11 @@ module.exports = function addHawk (superagent) {
   RequestProto.hawk = function(credential, moreOptions) {
     var url = this.url;
     var method = this.method;
+    var querystring = qs.stringify(this.qs);
+
+    url += querystring.length
+      ? '?' + querystring
+      : '';
 
     var contentType;
     if (this.getHeader && this.getHeader instanceof Function)
