@@ -62,11 +62,15 @@ module.exports = function addHawk (superagent) {
           required: true
         }
 
-        this.is_response_verified =  hawk.client.authenticate(
+        var verified =  hawk.client.authenticate(
             this.r.response,
             credential,
             hawk_header.artifacts,
             options);
+
+        if (!verified) {
+          result.error = new Error('Hawk response signature verification failed');
+        }
 
         return end_handler(result);
       };
