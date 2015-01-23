@@ -42,7 +42,20 @@ module.exports = function addHawk (superagent) {
 
     this.set('Authorization', hawk_header.field);
 
-    this.end_verified = function (end_handler) {
+    /*
+     * wraps this.end() into a wrapper function. the wrapper function wraps
+     * the end handler that gets passed to this.end() into another function
+     * that first verifies responses before calling the end handler that has
+     * been passed.
+     * afterwards the result of the verification can be retrieved inside the
+     * end handler from:
+     *
+     *    this.is_response_verified
+     */
+    this.original_end = this.end;
+
+    this.end = function (end_handler) {
+
       var wrapped_end_handler = function (result) {
         var options = {
           payload: this.r.res.text,
@@ -57,7 +70,7 @@ module.exports = function addHawk (superagent) {
 
         return end_handler(result);
       };
-      this.end(wrapped_end_handler);
+      this.original_end(wrapped_end_handler);
     }
 
     return this;
