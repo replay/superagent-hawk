@@ -8,8 +8,6 @@ module.exports = function addHawk (superagent) {
                       ? superagent.Test.prototype
                       : superagent.Request.prototype;
 
-  var ResponseProto = superagent.Response.prototype;
-
   function verify_response() {
 
     var options = {
