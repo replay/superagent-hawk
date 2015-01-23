@@ -42,39 +42,43 @@ module.exports = function addHawk (superagent) {
 
     this.set('Authorization', hawk_header.field);
 
-    /*
-     * wraps this.end() into a wrapper function. the wrapper function wraps
-     * the end handler that gets passed to this.end() into another function
-     * that first verifies responses before calling the end handler that has
-     * been passed.
-     * afterwards the result of the verification can be retrieved inside the
-     * end handler from:
-     *
-     *    this.is_response_verified
-     */
-    this.original_end = this.end;
+    if ('verify_response' in options && options['verify_response'])
+    {
+      /*
+       * wraps this.end() into a wrapper function. the wrapper function wraps
+       * the end handler that gets passed to this.end() into another function
+       * that first verifies responses before calling the end handler that has
+       * been passed.
+       * afterwards the result of the verification can be retrieved inside the
+       * end handler from:
+       *
+       *    this.is_response_verified
+       */
+      this.original_end = this.end;
 
-    this.end = function (end_handler) {
+      this.end = function (end_handler) {
 
-      var wrapped_end_handler = function (result) {
-        var options = {
-          payload: this.r.res.text,
-          required: true
-        }
+        var wrapped_end_handler = function (result) {
+          var hawk_options = {
+            payload: this.r.res.text,
+            required: true
+          }
 
-        var verified =  hawk.client.authenticate(
-            this.r.response,
-            credential,
-            hawk_header.artifacts,
-            options);
+          var verified =  hawk.client.authenticate(
+              this.r.response,
+              credential,
+              hawk_header.artifacts,
+              hawk_options);
 
-        if (!verified) {
-          result.error = new Error('Hawk response signature verification failed');
-        }
+          if (!verified) {
+            result.error = new Error(
+                'Hawk response signature verification failed');
+          }
 
-        return end_handler(result);
-      };
-      this.original_end(wrapped_end_handler);
+          return end_handler(result);
+        };
+        this.original_end(wrapped_end_handler);
+      }
     }
 
     return this;
