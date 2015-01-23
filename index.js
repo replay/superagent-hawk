@@ -8,20 +8,6 @@ module.exports = function addHawk (superagent) {
                       ? superagent.Test.prototype
                       : superagent.Request.prototype;
 
-  RequestProto.hawk_verify_response = function () {
-
-    var options = {
-      payload: this.res.text,
-      required: true
-    }
-
-    return hawk.client.authenticate(
-        this.response,
-        this.hawk.credentials,
-        this.hawk.artifacts,
-        options);
-  }
-
   RequestProto.hawk = function(credential, moreOptions) {
     var url = this.url;
     var method = this.method;
@@ -56,8 +42,23 @@ module.exports = function addHawk (superagent) {
 
     this.set('Authorization', hawk_header.field);
 
-    this.hawk.artifacts = hawk_header.artifacts;
-    this.hawk.credentials = credential;
+    this.end_verified = function (end_handler) {
+      var wrapped_end_handler = function (result) {
+        var options = {
+          payload: this.r.res.text,
+          required: true
+        }
+
+        this.is_response_verified =  hawk.client.authenticate(
+            this.r.response,
+            credential,
+            hawk_header.artifacts,
+            options);
+
+        return end_handler(result);
+      };
+      this.end(wrapped_end_handler);
+    }
 
     return this;
   };
