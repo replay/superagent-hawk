@@ -8,6 +8,26 @@ module.exports = function addHawk (superagent) {
                       ? superagent.Test.prototype
                       : superagent.Request.prototype;
 
+  var ResponseProto = superagent.Response.prototype;
+
+  function verify_response() {
+
+    var options = {
+      payload: this.res.text,
+      required: true
+    }
+
+    var result = hawk.client.authenticate(
+        this.response,
+        this.hawk_credentials,
+        this.hawk_artifacts,
+        options);
+
+    if (!result) {
+      throw new Error('Hawk response validation has failed!');
+    }
+  }
+
   RequestProto.hawk = function(credential, moreOptions) {
     var url = this.url;
     var method = this.method;
@@ -38,8 +58,14 @@ module.exports = function addHawk (superagent) {
     if (options && typeof options == 'object')
       options = extend(options, moreOptions);
 
-    this.set('Authorization',
-      hawk.client.header(url, method, options).field);
+    var hawk_header = hawk.client.header(url, method, options);
+
+    this.set('Authorization', hawk_header.field);
+
+    this.hawk_artifacts = hawk_header.artifacts;
+    this.hawk_credentials = credential;
+
+    this.on('end', verify_response);
 
     return this;
   };
