@@ -42,7 +42,7 @@ module.exports = function addHawk (superagent) {
 
     this.set('Authorization', hawk_header.field);
 
-    if ('verify_response' in options && options['verify_response'])
+    if ('verifyResponse' in options && options['verifyResponse'])
     {
       /*
        * wraps this.end() into a wrapper function. the wrapper function wraps
