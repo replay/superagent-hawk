@@ -73,6 +73,32 @@ request
   .end(function (res) {
     console.log(res.body);
   });
+
+```
+
+### Verify server response signatures (optional)
+
+```js
+var options = {
+  localtimeOffsetMsec: 500,
+  verifyResponse: true
+};
+
+var credential = {
+  "id": "50e17602-f044-41cb-8e5f-ae634cc15fb0",
+  "key": "I2Yiq3UGAUR6Oztnv/3JJK6T0clmGTX14d/TJ1qNKio=",
+  "algorithm": "sha256"
+};
+
+request
+  .get('http://resource.com')
+  .hawk(credential, options) // options is, well, optional
+  .end(function (res) {
+    if (res.error) {
+      console.log('Server response verification has failed');
+    }
+    console.log(res.body);
+  });
 ```
 
 ## License
