@@ -8,20 +8,6 @@ module.exports = function addHawk (superagent) {
                       ? superagent.Test.prototype
                       : superagent.Request.prototype;
 
-  RequestProto.hawk_verify_response = function () {
-
-    var options = {
-      payload: this.res.text,
-      required: true
-    }
-
-    return hawk.client.authenticate(
-        this.response,
-        this.hawk.credentials,
-        this.hawk.artifacts,
-        options);
-  }
-
   RequestProto.hawk = function(credential, moreOptions) {
     var url = this.url;
     var method = this.method;
@@ -56,8 +42,44 @@ module.exports = function addHawk (superagent) {
 
     this.set('Authorization', hawk_header.field);
 
-    this.hawk.artifacts = hawk_header.artifacts;
-    this.hawk.credentials = credential;
+    if ('verifyResponse' in options && options['verifyResponse'])
+    {
+      /*
+       * wraps this.end() into a wrapper function. the wrapper function wraps
+       * the end handler that gets passed to this.end() into another function
+       * that first verifies responses before calling the end handler that has
+       * been passed.
+       * afterwards the result of the verification can be retrieved inside the
+       * end handler from:
+       *
+       *    this.is_response_verified
+       */
+      this.original_end = this.end;
+
+      this.end = function (end_handler) {
+
+        var wrapped_end_handler = function (result) {
+          var hawk_options = {
+            payload: this.r.res.text,
+            required: true
+          }
+
+          var verified =  hawk.client.authenticate(
+              this.r.response,
+              credential,
+              hawk_header.artifacts,
+              hawk_options);
+
+          if (!verified) {
+            result.error = new Error(
+                'Hawk response signature verification failed');
+          }
+
+          return end_handler(result);
+        };
+        this.original_end(wrapped_end_handler);
+      }
+    }
 
     return this;
   };
