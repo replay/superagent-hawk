@@ -44,11 +44,12 @@ test('server starts', function (t) {
   });
 });
 
+
 test('credential works', function (t) {
   request
     .get('http://localhost:8080')
     .bewit(bewit)
-    .end(function (res) {
+    .end(function (err, res) {
       t.equal(res.statusCode, 200, 'Responded 200');
       t.equal(res.text, 'Hello Steve', 'knows who I am');
       t.end();
@@ -59,19 +60,20 @@ test('wrong bewit won\'t work', function (t) {
   request
     .get('http://localhost:8080')
     .bewit(bewit+'should_not_be_here')
-    .end(function (res) {
+    .end(function (err, res) {
       t.equal(res.statusCode, 401, 'Responded 401');
       t.equal(res.text, 'Shoosh!', 'Not authenticated');
       t.end();
     });
 });
 
+
 test('an expired bewit won\'t work', function (t) {
   setTimeout(function () {
     request
       .get('http://localhost:8080')
       .bewit(bewit)
-      .end(function (res) {
+      .end(function (err, res) {
         t.equal(res.statusCode, 401, 'Responded 401');
         t.equal(res.text, 'Shoosh!', 'Not authenticated');
         t.end();

@@ -4,9 +4,11 @@ var qs = require('qs');
 
 exports =
 module.exports = function (superagent) {
-  var Request = superagent.Request;
+  var RequestProto = superagent.Test
+                      ? superagent.Test.prototype
+                      : superagent.Request.prototype;
 
-  Request.prototype.hawk = function (credential, options) {
+  RequestProto.hawk = function (credential, options) {
     this._enable_hawk_signing = true;
     this._hawk_credential = credential;
     this._hawk_options = options;
@@ -14,7 +16,7 @@ module.exports = function (superagent) {
     return this;
   }
 
-  Request.prototype._do_hawk_sign = function () {
+  RequestProto._do_hawk_sign = function () {
     var contentType;
     var querystring = qs.stringify(this.qs);
     var method = this.method;
@@ -71,9 +73,9 @@ module.exports = function (superagent) {
     }
   }
 
-  var oldEnd = Request.prototype.end;
+  var oldEnd = RequestProto.end;
 
-  Request.prototype.end = function (response_handler) {
+  RequestProto.end = function (response_handler) {
     this.end = oldEnd;
 
     if (this._enable_hawk_signing) {
@@ -81,19 +83,20 @@ module.exports = function (superagent) {
 
       if (this._enable_hawk_response_verification) {
         var hawk_credential = this._hawk_credential;
-        var wrapped_response_handler = function(result) {
-          verify_hawk_response(result, hawk_credential, artifacts);
-          return response_handler(result);
+        var wrapped_response_handler = function(err, res) {
+          verify_hawk_response(res, hawk_credential, artifacts);
+          return response_handler(err, res);
         }
         return this.end(wrapped_response_handler);
-      } else {
-        return this.end(response_handler);
       }
     }
+    return this.end.apply(this, arguments);
   };
 
-  Request.prototype.bewit = function(bewit) {
+  RequestProto.bewit = function(bewit) {
     this.query({ bewit: bewit });
     return this;
   };
+
+  return superagent;
 }
