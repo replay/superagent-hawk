@@ -3,21 +3,26 @@ var extend = require('./lib/extend');
 var qs = require('qs');
 
 exports =
-module.exports = function addHawk (superagent) {
-  var RequestProto = superagent.Test
-                      ? superagent.Test.prototype
-                      : superagent.Request.prototype;
+module.exports = function (superagent) {
+  var Request = superagent.Request;
 
-  RequestProto.hawk = function(credential, moreOptions) {
-    var url = this.url;
-    var method = this.method;
+  Request.prototype.hawk = function (credential, options) {
+    this._enable_hawk_signing = true;
+    this._hawk_credential = credential;
+    this._hawk_options = options;
+
+    return this;
+  }
+
+  Request.prototype._do_hawk_sign = function () {
+    var contentType;
     var querystring = qs.stringify(this.qs);
-
+    var method = this.method;
+    var url = this.url;
     url += querystring.length
       ? '?' + querystring
       : '';
 
-    var contentType;
     if (this.getHeader && this.getHeader instanceof Function)
       contentType = this.getHeader('content-type');
     else if (this.get && this.get instanceof Function)
@@ -30,64 +35,64 @@ module.exports = function addHawk (superagent) {
     var data = (isJSON) ? JSON.stringify(this._data) : this._data;
 
     var options = {
-      credentials: credential,
+      credentials: this._hawk_credential,
       contentType: contentType,
       payload: data
     };
 
     if (options && typeof options == 'object')
-      options = extend(options, moreOptions);
+      options = extend(options, this._hawk_options);
+
+    if ('verifyResponse' in options && options['verifyResponse'])
+      this._enable_hawk_response_verification = true;
 
     var hawk_header = hawk.client.header(url, method, options);
 
     this.set('Authorization', hawk_header.field);
 
-    if ('verifyResponse' in options && options['verifyResponse'])
-    {
-      /*
-       * wraps this.end() into a wrapper function. the wrapper function wraps
-       * the end handler that gets passed to this.end() into another function
-       * that first verifies responses before calling the end handler that has
-       * been passed.
-       * afterwards the result of the verification can be retrieved inside the
-       * end handler from:
-       *
-       *    this.is_response_verified
-       */
-      this.original_end = this.end;
+    return hawk_header.artifacts;
+  };
 
-      this.end = function (end_handler) {
-
-        var wrapped_end_handler = function (result) {
-          var hawk_options = {
-            payload: this.r.res.text,
-            required: true
-          }
-
-          var verified =  hawk.client.authenticate(
-              this.r.response,
-              credential,
-              hawk_header.artifacts,
-              hawk_options);
-
-          if (!verified) {
-            result.error = new Error(
-                'Hawk response signature verification failed');
-          }
-
-          return end_handler(result);
-        };
-        this.original_end(wrapped_end_handler);
-      }
+  var verify_hawk_response = function(result, credential, artifacts) {
+    var hawk_options = {
+      payload: result.res.text,
+      required: true
     }
 
-    return this;
+    var verified =  hawk.client.authenticate(
+        result,
+        credential,
+        artifacts,
+        hawk_options);
+
+    if (!verified) {
+      result.error = new Error(
+          'Hawk response signature verification failed');
+    }
+  }
+
+  var oldEnd = Request.prototype.end;
+
+  Request.prototype.end = function (response_handler) {
+    this.end = oldEnd;
+
+    if (this._enable_hawk_signing)
+      artifacts = this._do_hawk_sign();
+
+    if (this._enable_hawk_response_verification) {
+      var hawk_credential = this._hawk_credential;
+      var wrapped_response_handler = function(result) {
+        verify_hawk_response(result, hawk_credential, artifacts);
+        return response_handler(result);
+      }
+      return this.end(wrapped_response_handler);
+    } else {
+      return this.end(response_handler);
+    }
   };
 
   RequestProto.bewit = function(bewit) {
     this.query({ bewit: bewit });
     return this;
   };
-
-  return superagent;
-};
+}
