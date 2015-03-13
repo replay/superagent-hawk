@@ -76,18 +76,19 @@ module.exports = function (superagent) {
   Request.prototype.end = function (response_handler) {
     this.end = oldEnd;
 
-    if (this._enable_hawk_signing)
-      artifacts = this._do_hawk_sign();
+    if (this._enable_hawk_signing) {
+      var artifacts = this._do_hawk_sign();
 
-    if (this._enable_hawk_response_verification) {
-      var hawk_credential = this._hawk_credential;
-      var wrapped_response_handler = function(result) {
-        verify_hawk_response(result, hawk_credential, artifacts);
-        return response_handler(result);
+      if (this._enable_hawk_response_verification) {
+        var hawk_credential = this._hawk_credential;
+        var wrapped_response_handler = function(result) {
+          verify_hawk_response(result, hawk_credential, artifacts);
+          return response_handler(result);
+        }
+        return this.end(wrapped_response_handler);
+      } else {
+        return this.end(response_handler);
       }
-      return this.end(wrapped_response_handler);
-    } else {
-      return this.end(response_handler);
     }
   };
 
