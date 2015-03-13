@@ -85,7 +85,9 @@ module.exports = function (superagent) {
         var hawk_credential = this._hawk_credential;
         var wrapped_response_handler = function(err, res) {
           verify_hawk_response(res, hawk_credential, artifacts);
-          return response_handler(err, res);
+          if (2 == response_handler.length) return response_handler(err, res);
+          if (err) return this.emit('error', err);
+          return response_handler(res);
         }
         return this.end(wrapped_response_handler);
       }
