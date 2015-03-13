@@ -91,7 +91,7 @@ module.exports = function (superagent) {
     }
   };
 
-  RequestProto.bewit = function(bewit) {
+  Request.prototype.bewit = function(bewit) {
     this.query({ bewit: bewit });
     return this;
   };
