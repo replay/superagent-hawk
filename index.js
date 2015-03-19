@@ -36,8 +36,8 @@ module.exports = function (superagent) {
       this._enable_hawk_response_verification = true;
 
     var hawk_header = hawk.client.header(
-      params['url'],
-      params['method'],
+      this.path,
+      this.method,
       options
     );
 
@@ -68,8 +68,6 @@ module.exports = function (superagent) {
 
   RequestProto.hawk_parameters = function() {
     return {
-      url: this.url,
-      method: this.method,
       hawk_credential: this._hawk_credential,
       hawk_options: this._hawk_options,
       content_type: this.req.getHeader('content-type')
