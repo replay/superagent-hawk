@@ -18,9 +18,7 @@ module.exports = function (superagent) {
 
   var do_hawk_sign = function (data) {
     var contentType;
-    var host;
     /*var querystring = qs.stringify(this.qs);*/
-    var method = this.method;
     //var url = this.path;
     /*url += querystring.length
       ? '?' + querystring
@@ -28,14 +26,10 @@ module.exports = function (superagent) {
 
     if (this.getHeader && this.getHeader instanceof Function) {
       contentType = this.getHeader('content-type');
-      host = this.getHeader('host');
     }
     else if (this.get && this.get instanceof Function) {
       contentType = this.get('content-type');
-      host = this.get('host');
     }
-
-    var url = host + this.path;
 
     var isJSON = data &&
                  data instanceof Object &&
@@ -55,8 +49,7 @@ module.exports = function (superagent) {
     if ('verifyResponse' in options && options['verifyResponse'])
       this._enable_hawk_response_verification = true;
 
-    //debugger;
-    var hawk_header = hawk.client.header(url, method, options);
+    var hawk_header = hawk.client.header(this._url, this.method, options);
 
     this.setHeader('Authorization', hawk_header.field);
 
@@ -86,16 +79,19 @@ module.exports = function (superagent) {
   RequestProto.request = function() {
 
     var req =  oldRequest.apply(this, arguments);
+    req._url = this.url;
+    req._hawk_credential = this._hawk_credential;
+    req._hawk_options = this._hawk_options;
+    req._do_hawk_sign = do_hawk_sign;
     if (req.has_hawk || !this._enable_hawk_signing)
       return req;
 
     var oldEnd = req.end;
-    req._hawk_credential = this._hawk_credential;
-    req._hawk_options = this._hawk_options;
-    req._do_hawk_sign = do_hawk_sign;
 
     req.end = function(data) {
-      var artifacts = this._do_hawk_sign();
+      var artifacts = this._do_hawk_sign(data);
+
+      var response = oldEnd.apply(this, arguments);
 
       /*if (enable_hawk_response_verification) {
         var hawk_credential = hawk_credential;
@@ -107,7 +103,8 @@ module.exports = function (superagent) {
         }
         return this.end(wrapped_response_handler);
       }*/
-      return oldEnd.apply(this, arguments);
+
+      return response
     }
 
     req.has_hawk = true;
