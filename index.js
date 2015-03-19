@@ -35,7 +35,7 @@ module.exports = function (superagent) {
       host = this.get('host');
     }
 
-    var url = host + '/' + this.path;
+    var url = host + this.path;
 
     var isJSON = data &&
                  data instanceof Object &&
@@ -91,12 +91,10 @@ module.exports = function (superagent) {
 
     var oldEnd = req.end;
     req._hawk_credential = this._hawk_credential;
-    //var enable_hawk_response_verification = this._enable_hawk_response_verification;
     req._hawk_options = this._hawk_options;
     req._do_hawk_sign = do_hawk_sign;
 
     req.end = function(data) {
-      this.end = oldEnd;
       var artifacts = this._do_hawk_sign();
 
       /*if (enable_hawk_response_verification) {
