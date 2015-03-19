@@ -16,25 +16,32 @@ module.exports = function (superagent) {
     return this;
   }
 
-  RequestProto._do_hawk_sign = function () {
+  var do_hawk_sign = function (data) {
     var contentType;
-    var querystring = qs.stringify(this.qs);
+    var host;
+    /*var querystring = qs.stringify(this.qs);*/
     var method = this.method;
-    var url = this.url;
-    url += querystring.length
+    //var url = this.path;
+    /*url += querystring.length
       ? '?' + querystring
-      : '';
+      : '';*/
 
-    if (this.getHeader && this.getHeader instanceof Function)
+    if (this.getHeader && this.getHeader instanceof Function) {
       contentType = this.getHeader('content-type');
-    else if (this.get && this.get instanceof Function)
+      host = this.getHeader('host');
+    }
+    else if (this.get && this.get instanceof Function) {
       contentType = this.get('content-type');
+      host = this.get('host');
+    }
 
-    var isJSON = this._data &&
-                 this._data instanceof Object &&
+    var url = host + '/' + this.path;
+
+    var isJSON = data &&
+                 data instanceof Object &&
                  contentType === 'application/json';
 
-    var data = (isJSON) ? JSON.stringify(this._data) : this._data;
+    var data = (isJSON) ? JSON.stringify(data) : data;
 
     var options = {
       credentials: this._hawk_credential,
@@ -48,9 +55,10 @@ module.exports = function (superagent) {
     if ('verifyResponse' in options && options['verifyResponse'])
       this._enable_hawk_response_verification = true;
 
+    //debugger;
     var hawk_header = hawk.client.header(url, method, options);
 
-    this.set('Authorization', hawk_header.field);
+    this.setHeader('Authorization', hawk_header.field);
 
     return hawk_header.artifacts;
   };
@@ -73,16 +81,26 @@ module.exports = function (superagent) {
     }
   }
 
-  var oldEnd = RequestProto.end;
+  var oldRequest = RequestProto.request;
 
-  RequestProto.end = function (response_handler) {
-    this.end = oldEnd;
+  RequestProto.request = function() {
 
-    if (this._enable_hawk_signing) {
+    var req =  oldRequest.apply(this, arguments);
+    if (req.has_hawk || !this._enable_hawk_signing)
+      return req;
+
+    var oldEnd = req.end;
+    req._hawk_credential = this._hawk_credential;
+    //var enable_hawk_response_verification = this._enable_hawk_response_verification;
+    req._hawk_options = this._hawk_options;
+    req._do_hawk_sign = do_hawk_sign;
+
+    req.end = function(data) {
+      this.end = oldEnd;
       var artifacts = this._do_hawk_sign();
 
-      if (this._enable_hawk_response_verification) {
-        var hawk_credential = this._hawk_credential;
+      /*if (enable_hawk_response_verification) {
+        var hawk_credential = hawk_credential;
         var wrapped_response_handler = function(err, res) {
           verify_hawk_response(res, hawk_credential, artifacts);
           if (2 == response_handler.length) return response_handler(err, res);
@@ -90,9 +108,12 @@ module.exports = function (superagent) {
           return response_handler(res);
         }
         return this.end(wrapped_response_handler);
-      }
+      }*/
+      return oldEnd.apply(this, arguments);
     }
-    return this.end.apply(this, arguments);
+
+    req.has_hawk = true;
+    return req;
   };
 
   RequestProto.bewit = function(bewit) {
