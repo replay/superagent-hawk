@@ -1,6 +1,7 @@
 var hawk = require('hawk');
 var extend = require('./lib/extend');
 var qs = require('qs');
+var parse = require('url').parse;
 
 exports =
 module.exports = function (superagent) {
@@ -18,14 +19,23 @@ module.exports = function (superagent) {
 
   var do_hawk_sign = function (data) {
     var params = this._hawk_parameters;
+    var contentType;
+
+    if (this.getHeader && this.getHeader instanceof Function) {
+      contentType = this.getHeader('content-type');
+    }
+    else if (this.get && this.get instanceof Function) {
+      contentType = this.get('content-type');
+    }
+
     var isJSON = data &&
                  data instanceof Object &&
-                 params['content_type'] === 'application/json';
+                 contentType === 'application/json';
     var data = (isJSON) ? JSON.stringify(data) : data;
 
     var options = {
       credentials: params['hawk_credential'],
-      contentType: params['content_type'],
+      contentType: contentType,
       payload: data
     };
 
@@ -35,8 +45,10 @@ module.exports = function (superagent) {
     if ('verifyResponse' in options && options['verifyResponse'])
       this._enable_hawk_response_verification = true;
 
+    url = parse(params['url'], true);
+
     var hawk_header = hawk.client.header(
-      this.path,
+      url.protocol + '//' + url.host + this.path,
       this.method,
       options
     );
@@ -68,9 +80,9 @@ module.exports = function (superagent) {
 
   RequestProto.hawk_parameters = function() {
     return {
+      url: this.url,
       hawk_credential: this._hawk_credential,
       hawk_options: this._hawk_options,
-      content_type: this.req.getHeader('content-type')
     }
   }
 
