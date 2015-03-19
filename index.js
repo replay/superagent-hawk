@@ -17,39 +17,29 @@ module.exports = function (superagent) {
   }
 
   var do_hawk_sign = function (data) {
-    var contentType;
-    /*var querystring = qs.stringify(this.qs);*/
-    //var url = this.path;
-    /*url += querystring.length
-      ? '?' + querystring
-      : '';*/
-
-    if (this.getHeader && this.getHeader instanceof Function) {
-      contentType = this.getHeader('content-type');
-    }
-    else if (this.get && this.get instanceof Function) {
-      contentType = this.get('content-type');
-    }
-
+    var params = this._hawk_parameters;
     var isJSON = data &&
                  data instanceof Object &&
-                 contentType === 'application/json';
-
+                 params['content_type'] === 'application/json';
     var data = (isJSON) ? JSON.stringify(data) : data;
 
     var options = {
-      credentials: this._hawk_credential,
-      contentType: contentType,
+      credentials: params['hawk_credential'],
+      contentType: params['content_type'],
       payload: data
     };
 
     if (options && typeof options == 'object')
-      options = extend(options, this._hawk_options);
+      options = extend(options, params['hawk_options']);
 
     if ('verifyResponse' in options && options['verifyResponse'])
       this._enable_hawk_response_verification = true;
 
-    var hawk_header = hawk.client.header(this._url, this.method, options);
+    var hawk_header = hawk.client.header(
+      params['url'],
+      params['method'],
+      options
+    );
 
     this.setHeader('Authorization', hawk_header.field);
 
@@ -76,16 +66,25 @@ module.exports = function (superagent) {
 
   var oldRequest = RequestProto.request;
 
+  RequestProto.hawk_parameters = function() {
+    return {
+      url: this.url,
+      method: this.method,
+      hawk_credential: this._hawk_credential,
+      hawk_options: this._hawk_options,
+      content_type: this.req.getHeader('content-type')
+    }
+  }
+
   RequestProto.request = function() {
 
     var req =  oldRequest.apply(this, arguments);
-    req._url = this.url;
-    req._hawk_credential = this._hawk_credential;
-    req._hawk_options = this._hawk_options;
-    req._do_hawk_sign = do_hawk_sign;
+    req._hawk_parameters = this.hawk_parameters();
+
     if (req.has_hawk || !this._enable_hawk_signing)
       return req;
 
+    req._do_hawk_sign = do_hawk_sign;
     var oldEnd = req.end;
 
     req.end = function(data) {
